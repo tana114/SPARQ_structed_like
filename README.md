@@ -1,6 +1,6 @@
 # QPARQ_structed_like 
 
-## 概要
+# 概要
 “SPARQ: Synthetic Problem Generation for Reasoning via Quality-Diversity Algorithms” の実装内容の部分的な動作検証。
 
 ### 検証時の実行環境
@@ -14,11 +14,11 @@ uv add langchain-groq
 ```
 
 
-### 01_ミューテーションの再現実験
+# 01_ミューテーションの再現実験
 
 「Phase1-2 : ミューテーションの生成（Mutation）」における下記ミューテーションの生成を予備検討的に実施  
 
-- ワーキングセット $W^{(t)}$  からサンプリングされた各親ペア$(Q^{(t)}_i, A^{(t)}i)$  を入力として、問題生成モデル $G_{\theta1}$  が新しいミューテーション$(Q'^{(t)}_i, A'^{(t)}_i)$  を生成する
+- ワーキングセット $`W^{(t)}`$  からサンプリングされた各親ペア $`(Q^{(t)}_i, A^{(t)}i)`$ を入力として、問題生成モデル $`G_{\theta1}`$  が新しいミューテーション $`(Q'^{(t)}_i, A'^{(t)}_i)`$ を生成する
 
 
 `client/concrete/sparq_mutation_gen.py`を実行するには、次のコマンドを使用します。
@@ -27,11 +27,12 @@ uv add langchain-groq
 python -m client.concrete.sparq_mutation_gen
 ```
 
-スクリプトが実行され、提供されたシードデータに基づいてミューテーション$(Q'_i, A'_i)$が生成されます。
+スクリプトが実行され、提供されたシードデータに基づいてミューテーション$`(Q'_i, A'_i)`$が生成されます。
 
 #### 例
 
-以下は、ローカル環境に構築した`qwen3:4b`モデルを使用して`client/concrete/sparq_mutation_gen.py`で生成されたマルチターンの会話の例です。
+以下は、ローカル環境に構築した`qwen3:4b`モデルを使用して`client/concrete/sparq_mutation_gen.py`で生成されたミューテーションの例です。  
+
 原著のやりかたとは異なりますが、ここでは別の試みとして、3つのFew-shotに対して、追加で2つのミューテーションを生成するということをしています。  
 
 `SYSTEM_PROMPT_FORMAT`を書き換えることで大分挙動が変わるとおもいますが、まだ精査できておりません。  
@@ -93,11 +94,11 @@ We can use the identity $(x+y)^2 = x^2 + 2xy + y^2$. We are given $x+y = 5$ and 
 
 
 
-### その他
+# その他
 
 使用するLLMモデルとして、ローカルに構築した`ollama`を用いる方法と`Groq API`を用いる方法を選択できます。
 
-#### `ollama`を用いる場合
+### `ollama`を用いる場合
 予めローカルで`ollama run qwen3:4b`を実行できる環境を作っておいてください（`qwen3:4b`使用時の例）。
 
 その上で、`client/concrete/sparq_mutation_gen.py`の下記において、以下のように指定します。
@@ -115,7 +116,7 @@ if __name__ == "__main__":
     ...
 ```
 
-#### `Groq API`を用いる場合
+### `Groq API`を用いる場合
 `Groq API`を取得すれば、GPU環境なしでも無料である程度実行できます。
 
 Groq APIを用いる場合は`.env`ファイルを作成しkeyを設定してください:
