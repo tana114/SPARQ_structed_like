@@ -12,7 +12,6 @@ from langchain_core.runnables import RunnableSerializable
 from langchain_core.language_models import BaseChatModel
 
 from langchain.prompts import ChatPromptTemplate
-from sympy.liealgebras.type_e import TypeE
 
 """ ***********  invork内容のデバック用 ************ """
 import langchain
@@ -213,6 +212,7 @@ if __name__ == "__main__":
     # )
 
     from langchain_experimental.llms.ollama_functions import OllamaFunctions
+
 
     # 構造化出力用のllm
     llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)

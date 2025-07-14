@@ -7,23 +7,14 @@ from langchain_core.language_models import BaseChatModel
 
 from client.chain_base import ChainDirector, ConcreteChainBase
 
-"""
-
-
-
-"""
-
-# NO_SIGN = "<noinput>"
-
 ''' SYSTEM_PROMPT_FORMAT
 {task_num}は生成するタスクの個数（few-shotの数も含まれる）
 '''
 
-
 SYSTEM_PROMPT_FORMAT = (
     "You are a helpful math problem and solution writer.\n"
-    "You will be asked to generate a diverse a set of {tasks_num} structured maths problems and solutions."
-    " You are tasked with generating a mutation conditioned on a set of input problems.\n"
+    "You are asked to create a set of {tasks_num} structured mathematical questions and answers."
+    " Conditioned on some questions and solutions given as seeds, you will be tasked with generating mutations of the remaining question-answer combinations.\n"
     "Here are the requirements:\n"
     "- Provide a step-by-step solution that addresses the given #problem#."
     " Clearly explain the purpose and execution of each operation performed to reach the final answer.\n"
@@ -32,6 +23,18 @@ SYSTEM_PROMPT_FORMAT = (
     "  If there are multiple numerical answers, write them as a comma separated list (n1, n2, ...).\n"
 )
 
+# SYSTEM_PROMPT_FORMAT = (
+#     "You are a helpful math problem and solution writer.\n"
+#     "You will be asked to generate a diverse a set of {tasks_num} structured maths problems and solutions."
+#     " You are tasked with generating a mutation conditioned on a set of input problems.\n"
+#     "Here are the requirements:\n"
+#     "- Provide a step-by-step solution that addresses the given #problem#."
+#     " Clearly explain the purpose and execution of each operation performed to reach the final answer.\n"
+#     "- The #solution# must be an appropriate response to the #problem#.\n"
+#     "- Make sure to include the intended final answer in #solution# enclosed in the latex style.\n"
+#     "  If there are multiple numerical answers, write them as a comma separated list (n1, n2, ...).\n"
+# )
+
 ''' HUMAN_PROMPT_FORMAT
 {{few_shot}}と{{next_no}}はinvoke時に与える
 {{few_shot}} : few-shot文字列
@@ -39,10 +42,8 @@ SYSTEM_PROMPT_FORMAT = (
 '''
 HUMAN_PROMPT_FORMAT = (
     "List of {tasks_num} structured math problems: \n\n{{few_shot}}\n"
-     "Generate a list of the remaining math problems starting from no: {{next_no}} onwards.\n"
-    # "Generate the list of remaining math problems after no: {{next_no}} onwards following the above.\n"
+    "Generate a list of the remaining math problems starting from no: {{next_no}} onwards.\n"
 )
-
 
 
 class ProblemData(BaseModel):
@@ -79,32 +80,30 @@ class SelfInstructGenerator(ConcreteChainBase):
             seed_instructions: List[Dict[str, str]]
     ) -> str:
         """
-        このクラスでinvokeする際に渡すFew-Shotプロンプト用の文字を生成する
+        invokeする際に渡すFew-Shotプロンプト用の文字を生成する
 
         :param seed_instructions:
         :return:
 
         seed_instructions =[
-            {"instruction": "hoge1", "input": "", "output": "hogefuga1"},
-            {"instruction": "hoge2", "input": "fuga2", "output": "hogefuga2"},
-            {"instruction": "hoge3", "input": "fuga3, "output": "hogefuga3"},
+            {"problem": "hoge1", "solution": "hogefuga1"},
+            {"problem": "hoge2", "solution": "hogefuga2"},
+            {"problem": "hoge3", "solution": "hogefuga3"},
         ]
 
         few_shot_prompts ='''
         {
           no: 1,
-          instruction: hoge1,
-          input: , "<noinput>"
-          output: hogefuga1
+          problem: hoge1,
+          solution: hogefuga1
         }
+         ...
         {
-          ...
-          output: hogefuga3
+          no: 3,
+          problem: hoge3,
+          solution: hogefuga3
         }
         """
-        # Replace '""' of input  with '"<noinput>"' character.
-        # seeds = [{k: NO_SIGN if k == 'input' and v == "" else v for k, v in d.items()} for d in seed_instructions]
-        # Add key 'no' and give serial number to value.
         seeds = [{"no": i + 1, **d} for i, d in enumerate(seed_instructions)]
 
         few_shot_prompt = ""
@@ -141,13 +140,8 @@ class SelfInstructGenerator(ConcreteChainBase):
             chain_d = cast(ChainDirector, self._chain_director)
             res = cast(ProblemList, chain_d.invoke(input, **kwargs, ))
 
-            # TaskList型を辞書型にdumpしたものを返す#
+        # ProblemList型を辞書型にdumpしたものを返す
         task_list = [d.model_dump() for d in res.problems]
-        # # 'input' の内容がNO_SIGNのままになっている場合は空文字の""に置き換える
-        # tg_key = 'input'
-        # for d in task_list:
-        #     if d[tg_key].lower() == NO_SIGN.lower():
-        #         d[tg_key] = ""
 
         return task_list
 
@@ -177,15 +171,14 @@ if __name__ == "__main__":
     # llm = GroqChatBase(
     #     model_name="llama-3.3-70b-versatile",
     #     # requests_per_second=0.32,
-    #     temperature=0
+    #     temperature=0.5
     # )
-
 
     from langchain_experimental.llms.ollama_functions import OllamaFunctions
 
     # 構造化出力用のllm
-    # llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
-    llm = OllamaFunctions(model="gemma3:12b", format="json", temperature=0.5)
+    llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
+    # llm = OllamaFunctions(model="gemma3:12b", format="json", temperature=0.5)
 
     seeds = [
         {
@@ -202,9 +195,17 @@ if __name__ == "__main__":
         },
     ]
 
+    # seeds = [
+    #     {
+    #         "problem": "How many vertical asymptotes does the graph of $y=\\frac{2}{x^2+x-6}$ have?",
+    #         "solution": "The denominator of the rational function factors into $x^2+x-6=(x-2)(x+3)$. Since the numerator is always nonzero, there is a vertical asymptote whenever the denominator is $0$, which occurs for $x = 2$ and $x = -3$.  Therefore, the graph has $\\boxed{2}$ vertical asymptotes.",
+    #     },
+    # ]
+
     gen = SelfInstructGenerator(
         chat_model=llm,
         num_task_to_generate=5,
+        # num_task_to_generate=2,
         # use_gen_num_check=True,
     )
     # few-shotの文字列を作成
@@ -227,7 +228,6 @@ if __name__ == "__main__":
         print(r['solution'])
         print('------------------------')
 
-
 '''model="qwen3:4b"
 [outputs]
 4
@@ -241,7 +241,6 @@ A rectangle has a length of 12 units and a width of 8 units. What is the length 
 The length of the diagonal of a rectangle can be found using the Pythagorean Theorem. The diagonal is the hypotenuse of a right triangle with legs of 12 and 8 units. So, $d = \sqrt{12^2 + 8^2} = \sqrt{144 + 64} = \sqrt{208}$. Simplifying, $\sqrt{208} = \sqrt{16 \times 13} = 4\sqrt{13}$. Therefore, the length of the diagonal is $\boxed{4\sqrt{13}}$.
 ------------------------
 '''
-
 
 ''' model="gemma3:12b"
 [outputs]

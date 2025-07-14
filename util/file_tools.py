@@ -36,10 +36,6 @@ from logging import getLogger, NullHandler
 logger = getLogger(__name__)
 logger.addHandler(NullHandler())
 
-from typing import Callable, Union
-import codecs
-import io
-
 
 class FileOpenerWrapper(object):
     """
