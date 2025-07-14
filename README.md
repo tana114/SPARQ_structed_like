@@ -1,4 +1,4 @@
-# QPARQ_structed_like 
+# SPARQ_structured_like 
 
 # 概要
 “SPARQ: Synthetic Problem Generation for Reasoning via Quality-Diversity Algorithms” の実装内容の部分的な動作検証。
