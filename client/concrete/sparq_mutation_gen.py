@@ -1,4 +1,3 @@
-import json
 from typing import Generator, Dict, Optional, Literal, TypedDict, List, Any
 from typing import cast
 
@@ -7,63 +6,49 @@ from langchain_core.language_models import BaseChatModel
 
 from client.chain_base import ChainDirector, ConcreteChainBase
 
-''' SYSTEM_PROMPT_FORMAT
-{task_num}は生成するタスクの個数（few-shotの数も含まれる）
-'''
-
 SYSTEM_PROMPT_FORMAT = (
     "You are a helpful math problem and solution writer.\n"
-    "You are asked to create a set of {tasks_num} structured mathematical questions and answers."
-    " Conditioned on some questions and solutions given as seeds, you will be tasked with generating mutations of the remaining question-answer combinations.\n"
+    "You are tasked with generating a mutation conditioned on a set of input problems."
+    " You will be shown the problems below.\n"
+    "#Seed Problem#\n"
+    "#Seed Solution#\n\n"
+    "Given the #Seed Problem# and the #Seed Solution#,"
+    " you will be tasked with generating the #Problem# and its solution, the #Solution#.\n"
     "Here are the requirements:\n"
-    "- Provide a step-by-step solution that addresses the given #problem#."
+    "- Generate a #Problem# that is as complex as the given #Seed Problem#."
+    " However, the #Problem# and the #Seed Problem# must not be identical."
+    " The #Problem# must be designed so that it is not just a partial replacement for the figures in the #Seed Problem#,"
+    " but a different version.\n"
+    "- Provide a step-by-step solution that addresses the #Problem#.\n"
     " Clearly explain the purpose and execution of each operation performed to reach the final answer.\n"
-    "- The #solution# must be an appropriate response to the #problem#.\n"
-    "- Make sure to include the intended final answer in #solution# enclosed in the latex style.\n"
-    "  If there are multiple numerical answers, write them as a comma separated list (n1, n2, ...).\n"
+    "- The #Solution# must be an appropriate response to the #Problem#.\n"
+    "- Make sure to include the intended final answer in #Solution# enclosed in the latex style."
+    " If there are multiple numerical answers, write them as a comma separated list (n1, n2, ...).\n"
 )
 
-# SYSTEM_PROMPT_FORMAT = (
-#     "You are a helpful math problem and solution writer.\n"
-#     "You will be asked to generate a diverse a set of {tasks_num} structured maths problems and solutions."
-#     " You are tasked with generating a mutation conditioned on a set of input problems.\n"
-#     "Here are the requirements:\n"
-#     "- Provide a step-by-step solution that addresses the given #problem#."
-#     " Clearly explain the purpose and execution of each operation performed to reach the final answer.\n"
-#     "- The #solution# must be an appropriate response to the #problem#.\n"
-#     "- Make sure to include the intended final answer in #solution# enclosed in the latex style.\n"
-#     "  If there are multiple numerical answers, write them as a comma separated list (n1, n2, ...).\n"
-# )
-
 ''' HUMAN_PROMPT_FORMAT
-{{few_shot}}と{{next_no}}はinvoke時に与える
-{{few_shot}} : few-shot文字列
-{{next_no}} : few-shot以降に生成するタスクの開始no
+{problem}と{solution}はinvoke時に与える
+{problem} : シードとして与えるproblem
+{solution} : シードとして与えるsolution
 '''
 HUMAN_PROMPT_FORMAT = (
-    "List of {tasks_num} structured math problems: \n\n{{few_shot}}\n"
-    "Generate a list of the remaining math problems starting from no: {{next_no}} onwards.\n"
+    "The seed problem and solution are below.\n"
+    "#Seed Problem#: {problem}\n"
+    "#Seed Solution#: {solution}\n"
+    "Generate a pair of mutations based on a pair of input problems and solutions."
 )
 
 
 class ProblemData(BaseModel):
-    """The Problem record includes problem, solution, and no."""
-    no: int = Field(description="List number of the generated problem.")
+    """The Problem record includes problem and solution."""
     problem: str = Field(description="Math problem.")
     solution: str = Field(description="Solution and final answer enclosed in the latex style.")
 
 
-class ProblemList(BaseModel):
-    """List for contains ProblemData."""
-    problems: List[ProblemData] = Field(description="A list containing multiple ProblemData.")
-
-
-class SelfInstructGenerator(ConcreteChainBase):
+class MutationGenerator(ConcreteChainBase):
     def __init__(
             self,
             chat_model: BaseChatModel,
-            num_task_to_generate: int = 10,
-            use_gen_num_check: bool = False,
     ):
         """
         :param chat_model:
@@ -72,93 +57,33 @@ class SelfInstructGenerator(ConcreteChainBase):
         """
         super().__init__()
         self._llm = chat_model
-        self._num_gen = num_task_to_generate
-        self._use_check = use_gen_num_check
-
-    @staticmethod
-    def encode_few_shot_prompt(
-            seed_instructions: List[Dict[str, str]]
-    ) -> str:
-        """
-        invokeする際に渡すFew-Shotプロンプト用の文字を生成する
-
-        :param seed_instructions:
-        :return:
-
-        seed_instructions =[
-            {"problem": "hoge1", "solution": "hogefuga1"},
-            {"problem": "hoge2", "solution": "hogefuga2"},
-            {"problem": "hoge3", "solution": "hogefuga3"},
-        ]
-
-        few_shot_prompts ='''
-        {
-          no: 1,
-          problem: hoge1,
-          solution: hogefuga1
-        }
-         ...
-        {
-          no: 3,
-          problem: hoge3,
-          solution: hogefuga3
-        }
-        """
-        seeds = [{"no": i + 1, **d} for i, d in enumerate(seed_instructions)]
-
-        few_shot_prompt = ""
-        # convert dict type to string.
-        for d in seeds:
-            few_shot_prompt += json.dumps(d, indent=2, ensure_ascii=False)
-            few_shot_prompt += "\n"
-
-        return few_shot_prompt
 
     def _create_chain_director(
             self,
             director_config: Optional[Dict],
     ) -> ChainDirector:
-        system_prompt = SYSTEM_PROMPT_FORMAT.format(tasks_num=self._num_gen)
-        human_prompt = HUMAN_PROMPT_FORMAT.format(tasks_num=self._num_gen)
+        system_prompt = SYSTEM_PROMPT_FORMAT
+        human_prompt = HUMAN_PROMPT_FORMAT
 
         return ChainDirector(
             chat_model=self._llm,
             system_prompt=system_prompt,
-            human_prompt=human_prompt,  # {few-shot}, {next_no}
-            struct_type=ProblemList,
+            human_prompt=human_prompt,  # {problem}, {solution}
+            struct_type=ProblemData,
         )
 
     def _invoke_handling(
             self,
-            input: Dict[Literal["few_shot", "next_no"], str],
+            input: Dict[Literal["problem", "solution"], str],
             **kwargs
-    ) -> List[Dict]:
-
-        if self._use_check:
-            res = cast(ProblemList, self._inst_num_check(input, **kwargs))
-        else:
-            chain_d = cast(ChainDirector, self._chain_director)
-            res = cast(ProblemList, chain_d.invoke(input, **kwargs, ))
-
-        # ProblemList型を辞書型にdumpしたものを返す
-        task_list = [d.model_dump() for d in res.problems]
-
-        return task_list
-
-    def _inst_num_check(
-            self,
-            input: Dict[Literal["few_shot", "next_no"], str],
-            **kwargs
-    ):
+    ) -> Dict:
         chain_d = cast(ChainDirector, self._chain_director)
-        res = cast(ProblemList, chain_d.invoke(input, **kwargs, ))
-        if not res:
-            return self._inst_num_check(input, **kwargs)
-        # 要素の数が想定した個数になっているかチェックするためにListの中身を確認
-        tasks_list = res.problems
-        tasks_list = [e for e in tasks_list if e.problem]  # 空文字は削除
-        counts = self._num_gen - int(input["next_no"])
-        return self._inst_num_check(input, **kwargs) if len(tasks_list) != counts + 1 else res
+        res = cast(ProblemData, chain_d.invoke(input, **kwargs, ))
+
+        # 辞書型にdumpしたものを返す
+        mutations = res.model_dump()
+
+        return mutations
 
 
 if __name__ == "__main__":
@@ -180,6 +105,8 @@ if __name__ == "__main__":
     llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
     # llm = OllamaFunctions(model="gemma3:12b", format="json", temperature=0.5)
 
+    gen = MutationGenerator(chat_model=llm)
+
     seeds = [
         {
             "problem": "How many vertical asymptotes does the graph of $y=\\frac{2}{x^2+x-6}$ have?",
@@ -195,65 +122,29 @@ if __name__ == "__main__":
         },
     ]
 
-    # seeds = [
-    #     {
-    #         "problem": "How many vertical asymptotes does the graph of $y=\\frac{2}{x^2+x-6}$ have?",
-    #         "solution": "The denominator of the rational function factors into $x^2+x-6=(x-2)(x+3)$. Since the numerator is always nonzero, there is a vertical asymptote whenever the denominator is $0$, which occurs for $x = 2$ and $x = -3$.  Therefore, the graph has $\\boxed{2}$ vertical asymptotes.",
-    #     },
-    # ]
-
-    gen = SelfInstructGenerator(
-        chat_model=llm,
-        num_task_to_generate=5,
-        # num_task_to_generate=2,
-        # use_gen_num_check=True,
-    )
-    # few-shotの文字列を作成
-    few_shot = gen.encode_few_shot_prompt(seeds)
-    print(few_shot)
-    next_no = len(seeds) + 1
+    i = 0
+    seed_problem = seeds[i]["problem"]
+    seed_solution = seeds[i]["solution"]
 
     inst = {
-        "few_shot": few_shot,
-        "next_no": next_no,
+        "problem": seed_problem,
+        "solution": seed_solution,
     }
 
     result = gen(inst)
-    # print(result)
 
-    for r in result:
-        print(r['no'])
-        print(r['problem'])
-        print(len(r['solution']))
-        print(r['solution'])
-        print('------------------------')
+    print('------------ seed -------------')
+    print(seed_problem)
+    print(seed_solution)
+    print('------------ mutation -------------')
+    print(result["problem"])
+    print(result["solution"])
 
 '''model="qwen3:4b"
-[outputs]
-4
-What is the value of $\log_2(8) + \log_3(9)$?
-221
-We know that $8 = 2^3$ and $9 = 3^2$. Using the logarithmic identity $\log_b(a^n) = n\log_b(a)$, we have $\log_2(8) = 3$ and $\log_3(9) = 2$. Adding these together, we get $3 + 2 = 5$. Therefore, the value is $\boxed{5}$.
-------------------------
-5
-A rectangle has a length of 12 units and a width of 8 units. What is the length of the diagonal of the rectangle?
-350
-The length of the diagonal of a rectangle can be found using the Pythagorean Theorem. The diagonal is the hypotenuse of a right triangle with legs of 12 and 8 units. So, $d = \sqrt{12^2 + 8^2} = \sqrt{144 + 64} = \sqrt{208}$. Simplifying, $\sqrt{208} = \sqrt{16 \times 13} = 4\sqrt{13}$. Therefore, the length of the diagonal is $\boxed{4\sqrt{13}}$.
-------------------------
-'''
-
-''' model="gemma3:12b"
-[outputs]
-4
-What is the sum of the first 50 positive even integers?
-397
-The first 50 positive even integers are 2, 4, 6, ..., 100. This is an arithmetic sequence with first term $a_1 = 2$, common difference $d = 2$, and number of terms $n = 50$. The sum of an arithmetic series is given by $S_n = 
-                                  rac{n}{2}(a_1 + a_n)$. In this case, $a_n = a_{50} = 2(50) = 100$. Thus, the sum is $S_{50} = 
-                                                                                                                                rac{50}{2}(2 + 100) = 25(102) = 2550$. Therefore, the sum is $\boxed{2550}$.
-------------------------
-5
-If $x + y = 5$ and $xy = 2$, what is the value of $x^2 + y^2$?
-317
-We can use the identity $(x+y)^2 = x^2 + 2xy + y^2$. We are given $x+y = 5$ and $xy = 2$. Substituting these values into the identity, we have $5^2 = x^2 + 2(2) + y^2$, which simplifies to $25 = x^2 + 4 + y^2$. Subtracting 4 from both sides gives $x^2 + y^2 = 21$. Therefore, the value of $x^2 + y^2$ is $\boxed{21}$.
-------------------------
+------------ seed -------------
+How many vertical asymptotes does the graph of $y=\frac{2}{x^2+x-6}$ have?
+The denominator of the rational function factors into $x^2+x-6=(x-2)(x+3)$. Since the numerator is always nonzero, there is a vertical asymptote whenever the denominator is $0$, which occurs for $x = 2$ and $x = -3$.  Therefore, the graph has $\boxed{2}$ vertical asymptotes.
+------------ mutation -------------
+How many vertical asymptotes does the graph of $y=\frac{3x^2 - 2x + 1}{x^2 - 4x + 4}$ have?
+The denominator of the rational function factors into $x^2 - 4x + 4 = (x - 2)^2$. Since the numerator is always nonzero, there is a vertical asymptote whenever the denominator is $0$, which occurs for $x = 2$. However, since the denominator has a repeated root, the graph has a vertical asymptote at $x = 2$. Therefore, the graph has $\boxed{1}$ vertical asymptote.
 '''
