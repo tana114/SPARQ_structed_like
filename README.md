@@ -38,7 +38,7 @@ python -m client.concrete.sparq_mutation_gen
 
 `SYSTEM_PROMPT_FORMAT`を書き換えることで大分挙動が変わるとおもいますが、まだ精査できておりません。  
 シードとして与えた`problem`に非常に似通ったミューテーションを生成する傾向があるみたいですので、
-プロンプトを工夫してい言い回しを変えた問題を生成したり、少し生成する問題の難易度を上げたりするような工夫を行ったほうが良いかもしれません。 
+プロンプトを工夫して言い回しを変えた問題を生成したり、少し生成する問題の難易度を上げたりするような工夫を行ったほうが良いかもしれません。 
 
 シードデータ
 ```text
@@ -110,4 +110,33 @@ if __name__ == "__main__":
     )
     
     ...
+```
+
+# 99_補足検討
+
+## 99_1_MATHの問題を要求スキルに基づいてさらに細かく分類する
+
+'AI-Assisted Generation of Difficult Math Questions'のTable10に、MATHデータ・セットを要求スキルによってさらに細かく分類した表が示されている。
+このスキル表に基づいて各問題を分類した場合にどのスキルが最も要求されるか各問題ごとに判断して結果を出力させてみた。
+
+```bash
+python -m client.concrete.math_skill_grader
+```
+
+Groq("llama-3.3-70b-versatile")で判定させた結果
+
+```text
+problem:  How many vertical asymptotes does the graph of $y=\frac{2}{x^2+x-6}$ have?
+solution:  The denominator of the rational function factors into $x^2+x-6=(x-2)(x+3)$. Since the numerator is always nonzero, there is a vertical asymptote whenever the denominator is $0$, which occurs for $x = 2$ and $x = -3$.  Therefore, the graph has $\boxed{2}$ vertical asymptotes.
+required skill:  factoring_skills
+```
+```text
+problem:  You have two circles, one with radius $r$ and the other with radius $R$. You wish for the difference in the areas of these two circles to be less than or equal to 5$\pi$. If $r+R=10$, what is the maximum difference in the lengths of the radii?
+solution:  We want $\pi R^{2}-\pi r^{2}\leq 5\pi$. Dividing by $\pi$, we have $R^{2}-r^{2}\leq 5$. Factor the left-hand side to get $(R+r)(R-r)\leq 5$. Substituting 10 for $R+r$ gives $10(R-r)\leq 5 \implies R-r \leq 1/2$. So the maximum difference in the lengths of the radii is $\boxed{\frac{1}{2}}$.
+required skill:  inequality_skills
+```
+```text
+problem:  Find the distance between the vertex of the graph of the equation $f(x) = x^2 - 8x + 15$ and the point $(0, 2)$.
+solution:  Completing the square, we get $f(x) = (x-4)^2 - 1$. The vertex of the graph of this equation is thus $(4, -1)$. Using the Pythagorean Theorem, it follows that the distance between $(0, 2)$ and $(4, -1)$ is $\boxed{5}$.
+required skill:  graph_and_geometry_skills
 ```
