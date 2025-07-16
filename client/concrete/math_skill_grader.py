@@ -24,19 +24,19 @@ compare_human_prompt = (
     "#Math Skills#:\n{math_skills}"
 )
 
-T = TypeVar('T')  # 型パラメータTを暫定的に定義しておく
+# allowed_valuesの要素の型を表す型変数
+T = TypeVar('T', bound=str)
 
 
 class EquivalenceComparisonGrader(ConcreteChainBase):
     def __init__(
             self,
             chat_model: BaseChatModel,
-            allowed_values: List[str]  # 動的にアノテーションを変えるための引数
+            allowed_values: List[T]
     ):
         super().__init__()
         self._llm = chat_model
         self._allowed_values = allowed_values
-        self.ResponseType = Literal[tuple(allowed_values)]  # Literalを動的に生成
 
     def _create_chain_director(
             self,
@@ -53,9 +53,9 @@ class EquivalenceComparisonGrader(ConcreteChainBase):
             self,
             input: Dict[Literal["problem", "solution", "math_skills"], str],
             **kwargs
-    ) -> str:
+    ) -> T:
         res = self._chain_director.invoke(
-            input,  # # {problem}, {solution}, {math_skills}
+            input,  # {problem}, {solution}, {math_skills}
             **kwargs,
         )
         # return res.model_dump()
@@ -109,14 +109,14 @@ if __name__ == "__main__":
 
     skills = skill_set['skills']
 
-    problem = "How many vertical asymptotes does the graph of $y=\\frac{2}{x^2+x-6}$ have?"
-    solution = "The denominator of the rational function factors into $x^2+x-6=(x-2)(x+3)$. Since the numerator is always nonzero, there is a vertical asymptote whenever the denominator is $0$, which occurs for $x = 2$ and $x = -3$.  Therefore, the graph has $\\boxed{2}$ vertical asymptotes."
+    # problem = "How many vertical asymptotes does the graph of $y=\\frac{2}{x^2+x-6}$ have?"
+    # solution = "The denominator of the rational function factors into $x^2+x-6=(x-2)(x+3)$. Since the numerator is always nonzero, there is a vertical asymptote whenever the denominator is $0$, which occurs for $x = 2$ and $x = -3$.  Therefore, the graph has $\\boxed{2}$ vertical asymptotes."
 
     # problem = "You have two circles, one with radius $r$ and the other with radius $R$. You wish for the difference in the areas of these two circles to be less than or equal to 5$\\pi$. If $r+R=10$, what is the maximum difference in the lengths of the radii?"
     # solution = "We want $\\pi R^{2}-\\pi r^{2}\\leq 5\\pi$. Dividing by $\\pi$, we have $R^{2}-r^{2}\\leq 5$. Factor the left-hand side to get $(R+r)(R-r)\\leq 5$. Substituting 10 for $R+r$ gives $10(R-r)\\leq 5 \\implies R-r \\leq 1/2$. So the maximum difference in the lengths of the radii is $\\boxed{\\frac{1}{2}}$."
 
-    # problem = "Find the distance between the vertex of the graph of the equation $f(x) = x^2 - 8x + 15$ and the point $(0, 2)$."
-    # solution = "Completing the square, we get $f(x) = (x-4)^2 - 1$. The vertex of the graph of this equation is thus $(4, -1)$. Using the Pythagorean Theorem, it follows that the distance between $(0, 2)$ and $(4, -1)$ is $\\boxed{5}$."
+    problem = "Find the distance between the vertex of the graph of the equation $f(x) = x^2 - 8x + 15$ and the point $(0, 2)$."
+    solution = "Completing the square, we get $f(x) = (x-4)^2 - 1$. The vertex of the graph of this equation is thus $(4, -1)$. Using the Pythagorean Theorem, it follows that the distance between $(0, 2)$ and $(4, -1)$ is $\\boxed{5}$."
 
     # print(skills)
 
