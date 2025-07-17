@@ -9,7 +9,8 @@
 
 ```bash
 uv add langchain
-uv add langchain-experimental
+# uv add langchain-experimental
+uv add langchain-ollama
 uv add langchain-groq
 uv add tqdm
 ```

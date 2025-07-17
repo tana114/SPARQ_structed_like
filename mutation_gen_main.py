@@ -41,10 +41,13 @@ def main():
     #     temperature=0.5,
     # )
 
-    from langchain_experimental.llms.ollama_functions import OllamaFunctions
+    # from langchain_experimental.llms.ollama_functions import OllamaFunctions
+    from langchain_ollama import ChatOllama
+
 
     # 構造化出力用のllm
-    llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
+    # llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
+    llm = ChatOllama(model="qwen3:4b", format="json", temperature=0.5)
 
     gm = GenerateManager(
         main_llm=llm,

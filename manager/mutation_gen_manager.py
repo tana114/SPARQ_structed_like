@@ -102,7 +102,7 @@ class GenerateManager(object):
                 fp_output_file = op_gen(fp)
                 if Path(fp_output_file).stem != Path(fp).stem:
                     ''' 出力先に同じファイル名がある場合、もととのファイル名と異なるファイル名が生成される
-                    → 同一ファイル名が存在するので、すでにミュータントを生成済みと判断
+                    → 同一ファイル名が存在するので、すでにミューテーションを生成済みと判断
                     '''
                     logger.info(f"Ignore file '{Path(fp).name}' as it already exists.")
                     continue
@@ -171,10 +171,13 @@ if __name__ == "__main__":
     #     temperature=0.6,
     # )
 
-    from langchain_experimental.llms.ollama_functions import OllamaFunctions
+    # from langchain_experimental.llms.ollama_functions import OllamaFunctions
+    from langchain_ollama import ChatOllama
+
 
     # 構造化出力用のllm
-    llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
+    # llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
+    llm = ChatOllama(model="qwen3:4b", format="json", temperature=0.5)
 
     test_cfg = dict(
         input_dir='./data/seed',

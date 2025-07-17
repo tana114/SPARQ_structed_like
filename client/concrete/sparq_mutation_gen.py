@@ -99,11 +99,14 @@ if __name__ == "__main__":
     #     temperature=0.5
     # )
 
-    from langchain_experimental.llms.ollama_functions import OllamaFunctions
+    # from langchain_experimental.llms.ollama_functions import OllamaFunctions
+    from langchain_ollama import ChatOllama
+
 
     # 構造化出力用のllm
-    llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
-    # llm = OllamaFunctions(model="gemma3:12b", format="json", temperature=0.5)
+    # llm = OllamaFunctions(model="qwen3:4b", format="json", temperature=0.5)
+    llm = ChatOllama(model="qwen3:4b", format="json", temperature=0.5)
+    # llm = ChatOllama(model="gemma3:12b", format="json", temperature=0.5)
 
     gen = MutationGenerator(chat_model=llm)
 
