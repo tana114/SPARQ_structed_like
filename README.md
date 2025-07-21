@@ -12,6 +12,7 @@ uv add langchain
 # uv add langchain-experimental
 uv add langchain-ollama
 uv add langchain-groq
+uv add langchain-openai
 uv add tqdm
 ```
 
@@ -90,12 +91,11 @@ if __name__ == "__main__":
 ### `Groq API`を用いる場合
 `Groq API`を取得すれば、GPU環境なしでも無料である程度実行できます。
 
-Groq APIを用いる場合は`.env`ファイルを作成しkeyを設定してください:
-
-```
+Groq APIを用いる場合は`.env`ファイルを(`README.md`と同じ階層に)作成し、以下のようにkeyを設定してください:  
+```  
 GROQ_API_KEY=your_api_key_here
 ```
-その上で、`client/concrete/sparq_mutation_gen.py`の下記において、以下のように指定します。
+その上で、`client/concrete/sparq_mutation_gen.py`において、以下のように指定します。
 
 ```python
 ...
@@ -112,6 +112,34 @@ if __name__ == "__main__":
     
     ...
 ```
+
+### `OpenRouter API`を用いる場合
+`OpenRouter API`を取得すれば、GPU環境なしでも`deepseek-r1`などのAPIを無料である程度実行できます。
+OpenRouter APIを用いる場合は`.env`ファイルを(`README.md`と同じ階層に)作成し、以下のようにkeyを設定してください:
+```
+OPENROUTER_API_KEY=your_api_key_here
+```
+その上で、`open_router_simple_usage.py`において、以下のように指定して実行します。
+
+```python
+def main(human_message:str):
+    ...
+    llm = OpenRouter(
+        model_name="deepseek/deepseek-r1:free",
+    ) 
+    ...
+
+if __name__ == "__main__":
+    """
+    python open_router_simple_usage.py 
+    """
+    prompt = '''
+    Please create a math problem that is as difficult as HLE. One that even you cannot solve. However, it must be a valid math problem, including one solution and the conditions necessary to obtain that solution.
+    '''
+    main(prompt)
+
+```
+
 
 # 99_補足検討
 
@@ -141,3 +169,14 @@ problem:  Find the distance between the vertex of the graph of the equation $f(x
 solution:  Completing the square, we get $f(x) = (x-4)^2 - 1$. The vertex of the graph of this equation is thus $(4, -1)$. Using the Pythagorean Theorem, it follows that the distance between $(0, 2)$ and $(4, -1)$ is $\boxed{5}$.
 required skill:  graph_and_geometry_skills
 ```
+
+## 99_2_OpenRouterを使えるようにする
+
+無料のAPI経由で`deepseek-r1`を利用したかったので[OpenRouter](https://openrouter.ai/)のAPIを使えるようにしました。
+APIの取得に関してはこちらのHP[【LLMは無料で使え！】OpenRouterのススメ【CLINEにも！】](https://zenn.dev/asap/articles/5cda4576fbe7cb)を参考にさせていただきました。
+
+
+
+
+
+
