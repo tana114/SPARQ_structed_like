@@ -140,6 +140,32 @@ if __name__ == "__main__":
 
 ```
 
+出力例
+```text
+**Problem Statement:**  
+Let \( a, b, c \) be positive real numbers such that \( abc = 1 \). Prove that:  
+\[
+\frac{a^3 + 1}{b^3 + 1} + \frac{b^3 + 1}{c^3 + 1} + \frac{c^3 + 1}{a^3 + 1} \geq 3
+\]  
+Determine the conditions under which equality holds.
+
+---
+
+**Conditions for Solution:**  
+1. The variables \( a, b, c \) must satisfy \( a, b, c > 0 \) and \( abc = 1 \).  
+2. The proof requires advanced inequality techniques, potentially involving substitutions inspired by the constraint \( abc = 1 \) (e.g., setting \( a = \frac{x}{y}, b = \frac{y}{z}, c = \frac{z}{x} \)).  
+3. Symmetry and cyclic reasoning are critical. Equality holds if and only if \( a = b = c = 1 \).
+
+**Solution (Summary):**  
+- By substituting \( a = b = c = 1 \), the sum equals \( 3 \), satisfying equality.  
+- For the inequality, apply the AM-GM inequality and analyze the convexity of the function \( f(x) = \frac{x^3 + 1}{y^3 + 1} \), or use homogenization via \( abc = 1 \) to reduce variables. A full proof leverages transformations and may involve showing that deviations from \( a = b = c \) increase the sum.  
+
+*(Note: A rigorous solution requires intricate steps that are non-trivial even for advanced mathematicians.)*  
+
+**Equality Condition:**  
+The equality \( \frac{a^3 + 1}{b^3 + 1} + \frac{b^3 + 1}{c^3 + 1} + \frac{c^3 + 1}{a^3 + 1} = 3 \) holds **only** when \( a = b = c = 1 \).
+```
+
 
 # 99_補足検討
 
